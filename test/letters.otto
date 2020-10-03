@@ -1,0 +1,48 @@
+.text
+	:remove
+		cls
+		mov r1 0
+		mov r2 0
+		mov r3 0
+	;
+
+	:char
+		font r0
+		sprite r1 r2 5
+		add r1 5
+		add r3 1
+	;
+	
+	:y
+		skeq r3 12
+		jsr char
+		skne r3 12
+		add r2 6
+		skne r2 30
+		;
+		skne r3 12
+		mov r1 0
+		skne r3 12
+		mov r3 0
+		skne r3 12
+		;
+		JP y
+	;
+
+	:main
+		mov r0 0x0
+		mov r1 0
+		jsr y
+		add r2 1
+		mov r3 0
+		:another-one
+			jsr remove
+			skeq r0 0xF
+			add r0 1
+			skeq r2 2
+			jsr y
+			skne r0 0xF
+			mov r0 0
+		skeq r0 0xF
+		jp another-one
+	;
