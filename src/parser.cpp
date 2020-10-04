@@ -11,9 +11,16 @@ Instruction parse(string line, Section *section, vector<LabelIO> *labels, int li
     case '>':
         return Instruction{"null", {}};
     case ':':
+    {
         // labels
-        label_handler(line, labels, line_number, *section);
-        return Instruction{"null", {}};
+        string label = line.substr(1, line.length());
+        InstructionParameter param = {
+            ADDRESS,
+            label,
+            0
+        };
+        return Instruction{"label", {param}};
+    }
     case ';':
         // return from subroutine
         return Instruction{"ret", {}};
@@ -85,6 +92,7 @@ InstructionParameter parse_literal(string token, int line_number)
     }
     catch (invalid_argument)
     {
+        type = STRING;
         InstructionParameter param = {type, token, 0};
         return param;
     }

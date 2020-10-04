@@ -28,6 +28,8 @@ private:
 
 	Section section = NONE;
 
+	void prepare_for_save();
+	void enter_main();
 	std::string read_line();
 	std::string trim_leading_whitespace(std::string input);
 	void resolve_labels();

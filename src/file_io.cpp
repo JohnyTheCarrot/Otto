@@ -22,3 +22,20 @@ char *read(const char *filename, long *fsize)
 	fclose(fp);
 	return fmem;
 }
+
+void save(const char *filename, std::vector<char> binary)
+{
+	FILE *fp;
+	fp = fopen(filename, "w");
+	if (fp == NULL)
+	{
+		fprintf(stderr, "Error writing to %s\n", filename);
+		return;
+	}
+	for (int i = 0; i < binary.size(); ++i)
+	{
+		char byte = binary[i];
+		fwrite(&byte, sizeof(char), 1, fp);
+	}
+	fclose(fp);
+}

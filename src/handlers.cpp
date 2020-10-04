@@ -13,8 +13,14 @@ const vector<AssemblyCommand> COMMANDS = {
         {}
     },
     {
+        "ret",
+        "00EE",
+        INSTRUCTION,
+        {}
+    },
+    {
         "mov",
-        "6rx",
+        "6r0x",
         INSTRUCTION,
         {REGISTER, INTEGER}
     },
@@ -44,7 +50,7 @@ const vector<AssemblyCommand> COMMANDS = {
     },
     {
         "add",
-        "7rx",
+        "7r0x",
         INSTRUCTION,
         {REGISTER, INTEGER}
     },
@@ -56,25 +62,25 @@ const vector<AssemblyCommand> COMMANDS = {
     },
     {
         "skeq",
-        "3rx",
+        "3r0x",
         INSTRUCTION,
         {REGISTER, INTEGER}
     },
     {
         "se",
-        "3rx",
+        "3r0x",
         INSTRUCTION,
         {REGISTER, INTEGER}
     },
     {
         "skne",
-        "4rx",
+        "4r0x",
         INSTRUCTION,
         {REGISTER, INTEGER}
     },
     {
         "sne",
-        "4rx",
+        "4r0x",
         INSTRUCTION,
         {REGISTER, INTEGER}
     }
@@ -86,34 +92,56 @@ handle(
     vector<short> *instructions,
     vector<char> *data,
     vector<LabelIO> *label_references,
+    vector<LabelIO> *labels,
     int *instruction_count,
+    int line_number,
     Section section
 )
 {
-    string label = inst.label;
+    if (inst.label == "label")
+    {
+        string label = inst.parameters[0].value_string;
+        label_handler(label, labels, line_number, *instruction_count, section);
+        return;
+    }
+    // find_command will exit the program if the label isn't found
+    AssemblyCommand command = find_command(inst, line_number);
+    assemble_command(
+        inst,
+        command,
+        instructions,
+        label_references,
+        instruction_count,
+        section
+    );
+}
+
+AssemblyCommand find_command(
+    Instruction inst,
+    int line_number
+)
+{
     bool label_found = false;
-    for (int i = 0; i < COMMANDS.size(); ++i) {
+    for (int i = 0; i < COMMANDS.size(); ++i)
+    {
         AssemblyCommand command = COMMANDS[i];
         string command_label = command.label;
-        if (label == command_label)
+        if (inst.label == command_label)
         {
             if (do_parameter_types_match(inst.parameters, command.accepted_parameter_types))
-            {
-                assemble_command(
-                    inst,
-                    command,
-                    instructions,
-                    label_references,
-                    instruction_count,
-                    section
-                );
-                return;
-            }
+                return command;
             label_found = true;
         }
     }
     // if we got here, and label_found is true, then the label was found,
     // but the specified parameters didn't match any commands
+    // if label_found is false, then no such label exists at all
+    stringstream stream;
+    if (label_found)
+        stream << "Command '" << inst.label << "' exists, but the parameters are of an invalid type.";
+    else
+        stream << "Command '" << inst.label << "' does not exists.";
+    fatal_error(stream.str(), line_number);
 }
 
 void assemble_command(
@@ -139,13 +167,7 @@ void assemble_command(
         } else if (c == 'l')
         {
             string label = inst.parameters[param_index].value_string;
-            LabelIO reference = {
-                *instruction_count,
-                section,
-                label
-            };
-            cout << "found address label '" << label << "'" << endl;
-            label_references->push_back(reference);
+            use_label(*instruction_count, section, label, label_references);
         } else {
             cout << c << " : " << inst_pos << endl;
             instruction |= stoi(string(1, c), 0, 16) << inst_pos;
@@ -153,8 +175,24 @@ void assemble_command(
         inst_pos -= 4;
     }
     cout << hex << instruction << endl;
-    ++(*instruction_count);
+    *instruction_count+=2;
     instructions->push_back(instruction);
+}
+
+void use_label(
+    int address,
+    Section section,
+    string label,
+    vector<LabelIO> *label_references
+)
+{
+    LabelIO reference = {
+        address / 2,
+        section,
+        label
+    };
+    cout << "found address label '" << label << "'" << endl;
+    label_references->push_back(reference);
 }
 
 bool do_parameter_types_match(
@@ -190,9 +228,14 @@ void section_handler(string line, Section *section, int line_number)
     }
 }
 
-void label_handler(string line, vector<LabelIO> *labels, int line_number, Section section)
+void label_handler(
+    string label,
+    vector<LabelIO> *labels,
+    int line_number,
+    int instruction_count,
+    Section section
+)
 {
-    string label = line.substr(1, line.length());
     // check if label already is defined
     if (is_label_defined(label, *labels))
     {
@@ -201,9 +244,12 @@ void label_handler(string line, vector<LabelIO> *labels, int line_number, Sectio
         fatal_error(string_stream.str(), line_number);
     }
     LabelIO label_io = {
-        line_number,
+        instruction_count,
         section,
         label
     };
+    stringstream string_stream;
+    string_stream << "Label '" << label << "' defined";
+    cout << string_stream.str() << endl;
     labels->push_back(label_io);
 }

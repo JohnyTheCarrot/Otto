@@ -5,7 +5,8 @@ enum InstructionParameterType
 {
     INTEGER,
     STRING,
-    REGISTER
+    REGISTER,
+    ADDRESS
 };
 
 enum Section

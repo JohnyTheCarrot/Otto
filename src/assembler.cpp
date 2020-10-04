@@ -9,7 +9,22 @@ Assembler::Assembler(char *input_filename, char *output_filename)
 	fmem = read(input_filename, &fsize);
 	init();
 	read_lines();
+	prepare_for_save();
+	// write assembled instructions to file
+	save(output_filename, binary);
 	cout << "end" << endl;
+}
+
+void Assembler::prepare_for_save()
+{
+	for (int i = 0; i < instructions.size(); ++i)
+	{
+		short instruction = instructions[i];
+		char byte_high = (instruction & 0xFF00) >> 8;
+		char byte_low = instruction & 0xFF;
+		binary.push_back(byte_high);
+		binary.push_back(byte_low);
+	}
 }
 
 void Assembler::init()
@@ -19,23 +34,57 @@ void Assembler::init()
 
 void Assembler::read_lines()
 {
+	// call main
+	enter_main();
+	// add endless loop, the call to main will continue to this after it exits
+	instructions.push_back(0x1000 | (0x200 + instruction_count));
+	instruction_count+=2;
+	// read lines and parse them
 	string line;
 	while ((line = read_line()) != "\0")
 	{
 		Instruction inst = parse(line, &section, &labels, line_number);
-		handle(inst, &instructions, &data, &label_references, &instruction_count, section);
+		if (inst.label == "null") continue;
+		handle(
+			inst,
+			&instructions,
+			&data,
+			&label_references,
+			&labels,
+			&instruction_count,
+			line_number,
+			section
+		);
 	}
-	cout << "listing" << endl;
-	for (int i = 0; i < instructions.size(); ++i)
-	{
-		cout << hex << instructions[i] << endl;
-	}
+	// resolve the labels
 	resolve_labels();
 	cout << "listing" << endl;
 	for (int i = 0; i < instructions.size(); ++i)
 	{
 		cout << hex << instructions[i] << endl;
 	}
+}
+
+void Assembler::enter_main()
+{
+	InstructionParameter parameter = {
+		STRING,
+		"main",
+		0
+	};
+	Instruction instruction = {
+		"jsr",
+		{parameter}
+	};
+	AssemblyCommand command = find_command(instruction, -1);
+	assemble_command(
+		instruction,
+		command,
+		&instructions,
+		&label_references,
+		&instruction_count,
+		TEXT
+	);
 }
 
 void Assembler::resolve_labels()

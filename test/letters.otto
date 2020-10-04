@@ -26,7 +26,7 @@
 		mov r3 0
 		skne r3 12
 		;
-		JP y
+		jp y
 	;
 
 	:main

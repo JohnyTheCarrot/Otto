@@ -12,6 +12,13 @@
 using namespace std;
 
 
+void use_label(
+    int address,
+    Section section,
+    string label,
+    vector<LabelIO> *label_references
+);
+
 void assemble_command(
     Instruction inst,
     AssemblyCommand command,
@@ -27,12 +34,19 @@ bool do_parameter_types_match(
     parameter_types
 );
 
+AssemblyCommand find_command(
+    Instruction inst,
+    int line_number
+);
+
 void handle(
-	Instruction inst,
-	vector<short> *instructions,
-	vector<char> *data,
-	vector<LabelIO> *label_references,
+    Instruction inst,
+    vector<short> *instructions,
+    vector<char> *data,
+    vector<LabelIO> *label_references,
+    vector<LabelIO> *labels,
     int *instruction_count,
+    int line_number,
     Section section
 );
 
@@ -43,9 +57,10 @@ void section_handler(
 );
 
 void label_handler(
-	string line,
-	vector<LabelIO> *labels,
-	int line_number,
+    string label,
+    vector<LabelIO> *labels,
+    int line_number,
+    int instruction_count,
     Section section
 );
 
